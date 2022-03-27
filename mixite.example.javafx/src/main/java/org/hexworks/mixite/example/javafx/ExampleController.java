@@ -6,7 +6,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import org.hexworks.mixite.core.api.*;
-import org.hexworks.mixite.core.api.contract.SatelliteData;
 import org.hexworks.mixite.core.vendor.Maybe;
 
 import java.util.HashMap;
@@ -46,6 +45,7 @@ public class ExampleController
     private static final Color COLOR_MOVE_RANGE = Color.YELLOW;
     private static final Color COLOR_UNSELECTED_CELL = Color.TRANSPARENT;
     private static final Color COLOR_SELECTED_CELL = Color.BLUE;
+    private static final Color COLOR_CALCULATING_DISTANCE = Color.CYAN;
 
     public CheckBox showNeighborsCheckbox;
     public CheckBox showVisibilityCheckbox;
@@ -129,29 +129,49 @@ public class ExampleController
         // Don't forget to clear first!
         gridCanvas.getGraphicsContext2D().clearRect(0, 0, gridCanvas.getWidth(), gridCanvas.getHeight());
 
+        // Draw the full grid first. This takes care of fills, but outlines will be done later.
         for (Hexagon<SatelliteDataImpl> hexagon : hexagonalGrid.getHexagons())
         {
             //Maybe<SatelliteData> satelliteData = hexagon.getSatelliteData();
             drawHexagon(gridCanvas, hexagon);
         }
-
+        for (Hexagon<SatelliteDataImpl> hexagon : hexagonalGrid.getHexagons())
+        {
+            //Maybe<SatelliteData> satelliteData = hexagon.getSatelliteData();
+            outlineHexagon(gridCanvas, hexagon);
+        }
     }
 
     private void drawHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon)
     {
+        // Default the line color.
+        gridCanvas.getGraphicsContext2D().setStroke(COLOR_GRID_LINE);
+
+        // Default the color fill to the "unselected" color.
+        gridCanvas.getGraphicsContext2D().setFill(COLOR_UNSELECTED_CELL);
+        // If the cell is selected, mark it with a different fill
         if(hexagon.getSatelliteData().isPresent() && hexagon.getSatelliteData().get().isSelected())
         {
             gridCanvas.getGraphicsContext2D().setFill(COLOR_SELECTED_CELL);
         }
-        else
-        {
-            gridCanvas.getGraphicsContext2D().setFill(COLOR_UNSELECTED_CELL);
-        }
-        gridCanvas.getGraphicsContext2D().setStroke(COLOR_GRID_LINE);
 
         HexPoints hexPoints = extractHexPoints(hexagon);
         gridCanvas.getGraphicsContext2D().fillPolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
         gridCanvas.getGraphicsContext2D().strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
+    }
+
+    private void outlineHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon)
+    {
+        // If the cell is one of the two being used for distance, mark it with a different outline.
+        if(hexagon.getSatelliteData().isPresent()
+                && (hexagon.equals(currentSelected) || hexagon.equals(previousSelected)))
+        {
+            gridCanvas.getGraphicsContext2D().setStroke(COLOR_CALCULATING_DISTANCE);
+            HexPoints hexPoints = extractHexPoints(hexagon);
+            gridCanvas.getGraphicsContext2D().strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
+        }
+
+        // Don't redraw default lines.
     }
 
     private int validateAndGetGridWidth()
@@ -183,7 +203,7 @@ public class ExampleController
             System.out.println("Exception while reading grid height; resetting to default.");
             gridHeightSpinner.getValueFactory().setValue(DEFAULT_GRID_HEIGHT);
         }
-        
+
         return gridHeight;
     }
 
@@ -201,7 +221,7 @@ public class ExampleController
         }
         return cellRadius;
     }
-    
+
     private HexagonOrientation validateAndGetOrientation()
     {
         HexagonOrientation orientation = DEFAULT_ORIENTATION;
