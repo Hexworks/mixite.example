@@ -40,9 +40,9 @@
                         <Label text="Layout" GridPane.rowIndex="1" />
                         <ChoiceBox fx:id="gridOrientationChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" />
                         <ChoiceBox fx:id="layoutChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Spinner fx:id="gridWidthSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2" onMouseClicked="#triggerRedraw"/>
-                        <Spinner fx:id="gridHeightSpinner" GridPane.columnIndex="1" GridPane.rowIndex="3" onMouseClicked="#triggerRedraw" />
-                        <Spinner fx:id="cellRadiusSpinner" GridPane.columnIndex="1" GridPane.rowIndex="4" onMouseClicked="#triggerRedraw" />
+                        <Spinner fx:id="gridWidthSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2" onMouseClicked="#triggerGridReset"/>
+                        <Spinner fx:id="gridHeightSpinner" GridPane.columnIndex="1" GridPane.rowIndex="3" onMouseClicked="#triggerGridReset" />
+                        <Spinner fx:id="cellRadiusSpinner" GridPane.columnIndex="1" GridPane.rowIndex="4" onMouseClicked="#triggerGridReset" />
                         <Spinner fx:id="moveRangeSpinner" GridPane.columnIndex="1" GridPane.rowIndex="5" onMouseClicked="#triggerRedraw" />
                         <Label text="Grid Width" GridPane.rowIndex="2" />
                         <Label text="Grid Height" GridPane.rowIndex="3" />
