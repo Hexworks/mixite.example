@@ -1,13 +1,16 @@
 package org.hexworks.mixite.example.javafx;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.RotateEvent;
 import javafx.scene.paint.Color;
 import org.hexworks.mixite.core.api.*;
 import org.hexworks.mixite.core.vendor.Maybe;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +46,7 @@ public class ExampleController
     private static final Color COLOR_NOT_VISIBLE = Color.DARKRED;
     private static final Color COLOR_PATH_OUTLINE = Color.PURPLE;
     private static final Color COLOR_MOVE_RANGE = Color.YELLOW;
-    private static final Color COLOR_UNSELECTED_CELL = Color.TRANSPARENT;
+    private static final Color COLOR_UNSELECTED_CELL = Color.WHITESMOKE;
     private static final Color COLOR_SELECTED_CELL = Color.BLUE;
     private static final Color COLOR_CALCULATING_DISTANCE = Color.CYAN;
 
@@ -129,49 +132,104 @@ public class ExampleController
         // Don't forget to clear first!
         gridCanvas.getGraphicsContext2D().clearRect(0, 0, gridCanvas.getWidth(), gridCanvas.getHeight());
 
-        // Draw the full grid first. This takes care of fills, but outlines will be done later.
-        for (Hexagon<SatelliteDataImpl> hexagon : hexagonalGrid.getHexagons())
+        // Collect neighbors, but don't draw them inline. Doing so would cause cells
+        // to redraw over the "neighbor" color. Instead, we'll go over the default color.
+        List<Hexagon<SatelliteDataImpl>> neighbors = new ArrayList<>();
+        // Same with selected cells. We want to maintain the correct precedence
+        // for the fill colors.
+        List<Hexagon<SatelliteDataImpl>> selected = new ArrayList<>();
+        // And the cells that indicate movement distance.
+        List<Hexagon<SatelliteDataImpl>> moveRange = new ArrayList<>();
+        // Since we are doing things this way, let's be consistent and just figure
+        // out all of them at the same time. This one is for the cells used to
+        // calculate distance.
+        List<Hexagon<SatelliteDataImpl>> distancers = new ArrayList<>();
+
+        if(currentSelected != null)
         {
-            //Maybe<SatelliteData> satelliteData = hexagon.getSatelliteData();
-            drawHexagon(gridCanvas, hexagon);
+            distancers.add(currentSelected);
         }
+        if(previousSelected != null)
+        {
+            distancers.add(previousSelected);
+        }
+
+        // Make sure our grid lines are visible.
+        gridCanvas.getGraphicsContext2D().setLineWidth(2d);
+
+        // Pre-process each of the special cases.
         for (Hexagon<SatelliteDataImpl> hexagon : hexagonalGrid.getHexagons())
         {
-            //Maybe<SatelliteData> satelliteData = hexagon.getSatelliteData();
-            outlineHexagon(gridCanvas, hexagon);
+            if(hexagon.getSatelliteData().isPresent() && hexagon.getSatelliteData().get().isSelected())
+            {
+                selected.add(hexagon);
+                if(showNeighborsCheckbox.isSelected())
+                {
+                    neighbors.addAll(hexagonalGrid.getNeighborsOf(hexagon));
+                }
+
+                if(showMoveRangeCheckbox.isSelected())
+                {
+                    moveRange.addAll(hexagonalGridCalculator.calculateMovementRangeFrom(hexagon, validateAndGetMoveRange()));
+                }
+            }
+            fillHexagon(gridCanvas, hexagon, COLOR_UNSELECTED_CELL);
+        }
+
+        // Fill in the "move range" cells.
+        if(showMoveRangeCheckbox.isSelected())
+        {
+            for (Hexagon<SatelliteDataImpl> hexagon : moveRange)
+            {
+                fillHexagon(gridCanvas, hexagon, COLOR_MOVE_RANGE);
+            }
+        }
+
+        // Fill in neighbor cells next.
+        if(showNeighborsCheckbox.isSelected())
+        {
+            for (Hexagon<SatelliteDataImpl> hexagon : neighbors)
+            {
+                fillHexagon(gridCanvas, hexagon, COLOR_NEIGHBOR);
+            }
+        }
+
+        // Fill in selected cells last. This ensures that they are always shown, even if they are also neighbors.
+        for (Hexagon<SatelliteDataImpl> hexagon : selected)
+        {
+            fillHexagon(gridCanvas, hexagon, COLOR_SELECTED_CELL);
+        }
+
+        // Draw the grid after the fills. This ensures that the fill does not cover the grid line.
+        // This is before the special case fills, though, as those override the default color.
+        for (Hexagon<SatelliteDataImpl> hexagon : hexagonalGrid.getHexagons())
+        {
+            outlineHexagon(gridCanvas, hexagon, COLOR_GRID_LINE);
+        }
+
+        // Draw outlines for the (up to) two cells that are currently being used
+        // for the distance calculation.
+        for (Hexagon<SatelliteDataImpl> hexagon : distancers)
+        {
+            outlineHexagon(gridCanvas, hexagon, COLOR_CALCULATING_DISTANCE);
         }
     }
 
-    private void drawHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon)
+    private void fillHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon, Color fillColor)
     {
         // Default the line color.
-        gridCanvas.getGraphicsContext2D().setStroke(COLOR_GRID_LINE);
-
-        // Default the color fill to the "unselected" color.
-        gridCanvas.getGraphicsContext2D().setFill(COLOR_UNSELECTED_CELL);
-        // If the cell is selected, mark it with a different fill
-        if(hexagon.getSatelliteData().isPresent() && hexagon.getSatelliteData().get().isSelected())
-        {
-            gridCanvas.getGraphicsContext2D().setFill(COLOR_SELECTED_CELL);
-        }
+        gridCanvas.getGraphicsContext2D().setFill(fillColor);
 
         HexPoints hexPoints = extractHexPoints(hexagon);
         gridCanvas.getGraphicsContext2D().fillPolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
-        gridCanvas.getGraphicsContext2D().strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
     }
 
-    private void outlineHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon)
+    private void outlineHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon, Color outlineColor)
     {
-        // If the cell is one of the two being used for distance, mark it with a different outline.
-        if(hexagon.getSatelliteData().isPresent()
-                && (hexagon.equals(currentSelected) || hexagon.equals(previousSelected)))
-        {
-            gridCanvas.getGraphicsContext2D().setStroke(COLOR_CALCULATING_DISTANCE);
-            HexPoints hexPoints = extractHexPoints(hexagon);
-            gridCanvas.getGraphicsContext2D().strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
-        }
+        gridCanvas.getGraphicsContext2D().setStroke(outlineColor);
+        HexPoints hexPoints = extractHexPoints(hexagon);
+        gridCanvas.getGraphicsContext2D().strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
 
-        // Don't redraw default lines.
     }
 
     private int validateAndGetGridWidth()
@@ -220,6 +278,21 @@ public class ExampleController
             cellRadiusSpinner.getValueFactory().setValue(DEFAULT_CELL_RADIUS);
         }
         return cellRadius;
+    }
+
+    private int validateAndGetMoveRange()
+    {
+        int moveRange = DEFAULT_MOVE_RANGE;
+        try
+        {
+            moveRange = Integer.parseInt(moveRangeSpinner.getValue().toString());
+        }
+        catch(Exception e)
+        {
+            System.out.println("Exception while reading movement range; resetting to default.");
+            moveRangeSpinner.getValueFactory().setValue(DEFAULT_MOVE_RANGE);
+        }
+        return moveRange;
     }
 
     private HexagonOrientation validateAndGetOrientation()
@@ -304,6 +377,11 @@ public class ExampleController
     {
         canvasXField.setText(mouseEvent.getX() + "");
         canvasYField.setText(mouseEvent.getY() + "");
+    }
+
+    public void triggerRedraw(MouseEvent mouseEvent)
+    {
+        redraw();
     }
 
     private class HexPoints

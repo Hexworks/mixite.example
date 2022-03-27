@@ -40,10 +40,10 @@
                         <Label text="Layout" GridPane.rowIndex="1" />
                         <ChoiceBox fx:id="gridOrientationChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" />
                         <ChoiceBox fx:id="layoutChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Spinner fx:id="gridWidthSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                        <Spinner fx:id="gridHeightSpinner" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                        <Spinner fx:id="cellRadiusSpinner" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                        <Spinner fx:id="moveRangeSpinner" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                        <Spinner fx:id="gridWidthSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2" onMouseClicked="#triggerRedraw"/>
+                        <Spinner fx:id="gridHeightSpinner" GridPane.columnIndex="1" GridPane.rowIndex="3" onMouseClicked="#triggerRedraw" />
+                        <Spinner fx:id="cellRadiusSpinner" GridPane.columnIndex="1" GridPane.rowIndex="4" onMouseClicked="#triggerRedraw" />
+                        <Spinner fx:id="moveRangeSpinner" GridPane.columnIndex="1" GridPane.rowIndex="5" onMouseClicked="#triggerRedraw" />
                         <Label text="Grid Width" GridPane.rowIndex="2" />
                         <Label text="Grid Height" GridPane.rowIndex="3" />
                         <Label text="Cell Radius" GridPane.rowIndex="4" />
@@ -51,35 +51,35 @@
                     </GridPane>
                 </AnchorPane>
                 <AnchorPane>
-                    <CheckBox fx:id="showNeighborsCheckbox" mnemonicParsing="false" text="Show Neighbors">
+                    <CheckBox fx:id="showNeighborsCheckbox" mnemonicParsing="false" text="Show Neighbors" onMouseClicked="#triggerRedraw">
                         <padding>
                             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                         </padding>
                     </CheckBox>
                 </AnchorPane>
                 <AnchorPane>
-                    <CheckBox fx:id="showVisibilityCheckbox" mnemonicParsing="false" text="Show Visibility">
+                    <CheckBox fx:id="showVisibilityCheckbox" mnemonicParsing="false" text="Show Visibility" onMouseClicked="#triggerRedraw">
                         <padding>
                             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                         </padding>
                     </CheckBox>
                 </AnchorPane>
                 <AnchorPane>
-                    <CheckBox fx:id="showPathingCheckbox" mnemonicParsing="false" text="Show Pathing">
+                    <CheckBox fx:id="showPathingCheckbox" mnemonicParsing="false" text="Show Pathing" onMouseClicked="#triggerRedraw">
                         <padding>
                             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                         </padding>
                     </CheckBox>
                 </AnchorPane>
                 <AnchorPane>
-                    <CheckBox fx:id="showMoveRangeCheckbox" mnemonicParsing="false" text="Show Move Range">
+                    <CheckBox fx:id="showMoveRangeCheckbox" mnemonicParsing="false" text="Show Move Range" onMouseClicked="#triggerRedraw">
                         <padding>
                             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                         </padding>
                     </CheckBox>
                 </AnchorPane>
                 <AnchorPane>
-                    <CheckBox fx:id="showCoordinatesCheckbox" mnemonicParsing="false" text="Show Coordinates">
+                    <CheckBox fx:id="showCoordinatesCheckbox" mnemonicParsing="false" text="Show Coordinates" onMouseClicked="#triggerRedraw">
                         <padding>
                             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                         </padding>
