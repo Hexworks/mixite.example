@@ -3,3 +3,5 @@ enableFeaturePreview('GRADLE_METADATA')
 rootProject.name = "mixite"
 
 include "mixite.example.swt"
+include 'mixite.example.javafx'
+
