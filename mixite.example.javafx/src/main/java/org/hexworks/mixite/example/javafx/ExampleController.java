@@ -5,7 +5,6 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.RotateEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import org.hexworks.mixite.core.api.*;
@@ -22,7 +21,7 @@ public class ExampleController
     private static final String GRID_ORIENTATION_FLAT = "Flat Top";
     private static final HexagonOrientation DEFAULT_ORIENTATION = HexagonOrientation.FLAT_TOP;
     private static final Map<String, HexagonOrientation> orientations = new HashMap<>();
-    public ChoiceBox gridOrientationChoiceBox;
+    public ChoiceBox<String> gridOrientationChoiceBox;
 
     private static final String GRID_LAYOUT_RECTANGLE = "Rectangle";
     private static final String GRID_LAYOUT_HEXAGON = "Hexagon";
@@ -30,16 +29,16 @@ public class ExampleController
     private static final String GRID_LAYOUT_TRAPEZOID = "Trapezoid";
     private static final HexagonalGridLayout DEFAULT_LAYOUT = HexagonalGridLayout.RECTANGULAR;
     private static final Map<String, HexagonalGridLayout> layouts = new HashMap<>();
-    public ChoiceBox layoutChoiceBox;
+    public ChoiceBox<String> layoutChoiceBox;
 
     private static final int DEFAULT_GRID_WIDTH = 20;
-    public Spinner gridWidthSpinner;
+    public Spinner<Integer> gridWidthSpinner;
     private static final int DEFAULT_GRID_HEIGHT = 20;
-    public Spinner gridHeightSpinner;
+    public Spinner<Integer> gridHeightSpinner;
     private static final int DEFAULT_CELL_RADIUS = 20;
-    public Spinner cellRadiusSpinner;
+    public Spinner<Integer> cellRadiusSpinner;
     private static final int DEFAULT_MOVE_RANGE = 2;
-    public Spinner moveRangeSpinner;
+    public Spinner<Integer> moveRangeSpinner;
 
     private static final Color COLOR_GRID_LINE = Color.BLACK;
     private static final Color COLOR_NEIGHBOR = Color.SLATEGREY;
@@ -318,6 +317,7 @@ public class ExampleController
         context.fillText("Z: " + gridZ, left, zTop);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void drawCenterCircle(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon, Color circleColor)
     {
         double circleRadius = validateAndGetCellRadius() / 3.0;
@@ -478,7 +478,7 @@ public class ExampleController
     private HexagonOrientation validateAndGetOrientation()
     {
         HexagonOrientation orientation = DEFAULT_ORIENTATION;
-        String selectedOrientation = gridOrientationChoiceBox.getSelectionModel().getSelectedItem().toString();
+        String selectedOrientation = gridOrientationChoiceBox.getSelectionModel().getSelectedItem();
         if(orientations.containsKey(selectedOrientation))
         {
             orientation = orientations.get(selectedOrientation);
@@ -494,7 +494,7 @@ public class ExampleController
     private HexagonalGridLayout validateAndGetLayout()
     {
         HexagonalGridLayout layout = DEFAULT_LAYOUT;
-        String selectedLayout = layoutChoiceBox.getSelectionModel().getSelectedItem().toString();
+        String selectedLayout = layoutChoiceBox.getSelectionModel().getSelectedItem();
         if(layouts.containsKey(selectedLayout))
         {
             layout = layouts.get(selectedLayout);
@@ -568,11 +568,6 @@ public class ExampleController
     }
 
     public void triggerGridReset(MouseEvent mouseEvent)
-    {
-        resetGrid(null);
-    }
-
-    public void choiceBoxReset(RotateEvent rotateEvent)
     {
         resetGrid(null);
     }
