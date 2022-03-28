@@ -5,6 +5,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.RotateEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import org.hexworks.mixite.core.api.*;
@@ -92,12 +93,16 @@ public class ExampleController
         // Add the grid orientation options. The differentiator is whether the top is pointy or flat.
         gridOrientationChoiceBox.getItems().addAll(orientations.keySet());
         gridOrientationChoiceBox.getSelectionModel().selectFirst();
+        // There's no easy way to assign an "anything changed" callback in the fxml file,
+        // so just add a listener to the selection property.
+        gridOrientationChoiceBox.getSelectionModel().selectedItemProperty().addListener(event -> resetGrid(null));
 
         // Add the grid layout options. Hex grids are stored and manipulated with cubic
         // coordinates, but many applications assume cartesian coordinates, so there are
         // several possible ways to lay out those variations.
         layoutChoiceBox.getItems().addAll(layouts.keySet());
         layoutChoiceBox.getSelectionModel().select(GRID_LAYOUT_RECTANGLE);
+        layoutChoiceBox.getSelectionModel().selectedItemProperty().addListener(event -> resetGrid(null));
 
         // Set up the spinners with default values and make sure that they only accept numbers.
         gridWidthSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(10, 100, DEFAULT_GRID_WIDTH));
@@ -111,11 +116,13 @@ public class ExampleController
     public void resetGrid(ActionEvent actionEvent)
     {
         // 1. Get vital grid info.
+        HexagonOrientation orientation = validateAndGetOrientation();
+        HexagonalGridLayout layout = validateAndGetLayout();
+        validateDimensionsForTriangle(layout);
+        validateDimensionsForHexagon(layout);
         int gridWidth = validateAndGetGridWidth();
         int gridHeight = validateAndGetGridHeight();
         int cellRadius = validateAndGetCellRadius();
-        HexagonOrientation orientation = validateAndGetOrientation();
-        HexagonalGridLayout layout = validateAndGetLayout();
 
         // 2. Create a grid builder and the corresponding calculator.
         HexagonalGridBuilder<SatelliteDataImpl> builder = new HexagonalGridBuilder<SatelliteDataImpl>()
@@ -374,6 +381,69 @@ public class ExampleController
         return gridHeight;
     }
 
+    /**
+     * If the layout is hexagon in particular, make sure we have numbers appropriate for drawing one.
+     *
+     * @param layout The current layout.
+     */
+    private void validateDimensionsForHexagon(HexagonalGridLayout layout)
+    {
+        int gridHeight = validateAndGetGridHeight();
+        int gridWidth = validateAndGetGridWidth();
+
+        // Hexagonal grids (the grid itself, not the cells) must have an odd height and width.
+        // The height must also match the width.
+        if(HexagonalGridLayout.HEXAGONAL.equals(layout))
+        {
+            boolean evenHeight = (gridHeight % 2 == 0);
+            boolean evenWidth = (gridWidth % 2 == 0);
+            boolean dimensionsMatch = (gridHeight == gridWidth);
+
+            if(evenHeight && evenWidth)
+            {
+                // Neither is right, so we'll make a guess.
+                int newEdge = Math.max(gridHeight, gridWidth);
+                newEdge++;
+                gridHeight = newEdge;
+                gridWidth = newEdge;
+            }
+            else if(!dimensionsMatch)
+            {
+                // If we get here, we know that at least one of these is odd.
+                int newEdge =  evenHeight ? gridWidth : gridHeight;
+                gridHeight = newEdge;
+                gridWidth = newEdge;
+            }
+            gridHeightSpinner.getValueFactory().setValue(gridHeight);
+            gridWidthSpinner.getValueFactory().setValue(gridWidth);
+        }
+    }
+
+    /**
+     * If the layout is triangle in particular, make sure we have numbers appropriate for drawing one.
+     *
+     * @param layout The current layout.
+     */
+    private void validateDimensionsForTriangle(HexagonalGridLayout layout)
+    {
+        int gridHeight = validateAndGetGridHeight();
+        int gridWidth = validateAndGetGridWidth();
+
+        // Hexagonal grids (the grid itself, not the cells) must have an odd height and width.
+        // The height must also match the width.
+        if(HexagonalGridLayout.TRIANGULAR.equals(layout))
+        {
+            if(gridHeight != gridWidth)
+            {
+                // Neither is right, so we'll make a guess.
+                int newEdge = Math.max(gridHeight, gridWidth);
+
+                gridHeightSpinner.getValueFactory().setValue(newEdge);
+                gridWidthSpinner.getValueFactory().setValue(newEdge);
+            }
+        }
+    }
+
     private int validateAndGetCellRadius()
     {
         int cellRadius = DEFAULT_CELL_RADIUS;
@@ -386,6 +456,7 @@ public class ExampleController
             System.out.println("Exception while reading cell radius; resetting to default.");
             cellRadiusSpinner.getValueFactory().setValue(DEFAULT_CELL_RADIUS);
         }
+
         return cellRadius;
     }
 
@@ -497,6 +568,11 @@ public class ExampleController
     }
 
     public void triggerGridReset(MouseEvent mouseEvent)
+    {
+        resetGrid(null);
+    }
+
+    public void choiceBoxReset(RotateEvent rotateEvent)
     {
         resetGrid(null);
     }
