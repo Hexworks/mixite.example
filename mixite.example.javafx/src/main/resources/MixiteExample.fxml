@@ -40,10 +40,10 @@
                         <Label text="Layout" GridPane.rowIndex="1" />
                         <ChoiceBox fx:id="gridOrientationChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" />
                         <ChoiceBox fx:id="layoutChoiceBox" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Spinner fx:id="gridWidthSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2" onMouseClicked="#triggerGridReset"/>
-                        <Spinner fx:id="gridHeightSpinner" GridPane.columnIndex="1" GridPane.rowIndex="3" onMouseClicked="#triggerGridReset" />
-                        <Spinner fx:id="cellRadiusSpinner" GridPane.columnIndex="1" GridPane.rowIndex="4" onMouseClicked="#triggerGridReset" />
-                        <Spinner fx:id="moveRangeSpinner" GridPane.columnIndex="1" GridPane.rowIndex="5" onMouseClicked="#triggerRedraw" />
+                        <Spinner fx:id="gridWidthSpinner" GridPane.columnIndex="1" GridPane.rowIndex="2" onMouseClicked="#triggerGridReset" editable="true"/>
+                        <Spinner fx:id="gridHeightSpinner" GridPane.columnIndex="1" GridPane.rowIndex="3" onMouseClicked="#triggerGridReset" editable="true" />
+                        <Spinner fx:id="cellRadiusSpinner" GridPane.columnIndex="1" GridPane.rowIndex="4" onMouseClicked="#triggerGridReset" editable="true" />
+                        <Spinner fx:id="moveRangeSpinner" GridPane.columnIndex="1" GridPane.rowIndex="5" onMouseClicked="#triggerRedraw" editable="true" />
                         <Label text="Grid Width" GridPane.rowIndex="2" />
                         <Label text="Grid Height" GridPane.rowIndex="3" />
                         <Label text="Cell Radius" GridPane.rowIndex="4" />
@@ -113,7 +113,7 @@
             </VBox>
         </left>
         <center>
-          <Canvas fx:id="gridCanvas" height="600.0" onMouseMoved="#onCanvasMouseMove" onMouseClicked="#onCanvasClick" width="600.0" BorderPane.alignment="TOP_LEFT" />
+          <Canvas fx:id="gridCanvas" width="1000.0" height="1000.0" onMouseMoved="#onCanvasMouseMove" onMouseClicked="#onCanvasClick" BorderPane.alignment="TOP_LEFT" />
         </center>
     </BorderPane>
 </AnchorPane>

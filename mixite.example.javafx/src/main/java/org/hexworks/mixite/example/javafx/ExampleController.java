@@ -1,12 +1,12 @@
 package org.hexworks.mixite.example.javafx;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.RotateEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import org.hexworks.mixite.core.api.*;
 import org.hexworks.mixite.core.vendor.Maybe;
 
@@ -42,9 +42,9 @@ public class ExampleController
 
     private static final Color COLOR_GRID_LINE = Color.BLACK;
     private static final Color COLOR_NEIGHBOR = Color.SLATEGREY;
-    private static final Color COLOR_VISIBLE = Color.DARKGREEN;
+    private static final Color COLOR_VISIBLE = Color.GREEN;
     private static final Color COLOR_NOT_VISIBLE = Color.DARKRED;
-    private static final Color COLOR_PATH_OUTLINE = Color.PURPLE;
+    private static final Color COLOR_PATH = Color.PURPLE;
     private static final Color COLOR_MOVE_RANGE = Color.YELLOW;
     private static final Color COLOR_UNSELECTED_CELL = Color.WHITESMOKE;
     private static final Color COLOR_SELECTED_CELL = Color.BLUE;
@@ -56,8 +56,12 @@ public class ExampleController
     public CheckBox showMoveRangeCheckbox;
     public CheckBox showCoordinatesCheckbox;
 
+    private double coordTextSize = DEFAULT_CELL_RADIUS / 3.5;
+
     public TextField canvasXField;
+    Double latestCanvasX = Double.NaN;
     public TextField canvasYField;
+    Double latestCanvasY = Double.NaN;
 
     public TextField lastDistanceField;
 
@@ -124,6 +128,21 @@ public class ExampleController
         hexagonalGrid = builder.build();
         hexagonalGridCalculator = builder.buildCalculatorFor(hexagonalGrid);
 
+        // 3. Forget the previously selected cells.
+        currentSelected = null;
+        previousSelected = null;
+
+        // 4. Reset the coordinate font size.
+        coordTextSize = cellRadius / 3.5;
+
+        // 5. Uncheck all boxes.
+        showNeighborsCheckbox.setSelected(false);
+        showVisibilityCheckbox.setSelected(false);
+        showPathingCheckbox.setSelected(false);
+        showMoveRangeCheckbox.setSelected(false);
+        showCoordinatesCheckbox.setSelected(false);
+
+        // 6. Redraw everything.
         redraw();
     }
 
@@ -140,9 +159,10 @@ public class ExampleController
         List<Hexagon<SatelliteDataImpl>> selected = new ArrayList<>();
         // And the cells that indicate movement distance.
         List<Hexagon<SatelliteDataImpl>> moveRange = new ArrayList<>();
-        // Since we are doing things this way, let's be consistent and just figure
-        // out all of them at the same time. This one is for the cells used to
-        // calculate distance.
+
+        // Since we are doing things this way, let's be consistent and pre-calculate
+        // the outlines, too. This one is for the two cells used to calculate the
+        // latest distance.
         List<Hexagon<SatelliteDataImpl>> distancers = new ArrayList<>();
 
         if(currentSelected != null)
@@ -172,7 +192,9 @@ public class ExampleController
                 {
                     moveRange.addAll(hexagonalGridCalculator.calculateMovementRangeFrom(hexagon, validateAndGetMoveRange()));
                 }
+
             }
+            // Draw the default cell color.
             fillHexagon(gridCanvas, hexagon, COLOR_UNSELECTED_CELL);
         }
 
@@ -213,6 +235,91 @@ public class ExampleController
         {
             outlineHexagon(gridCanvas, hexagon, COLOR_CALCULATING_DISTANCE);
         }
+
+        // This is the marker for visible vs non-visible cells. There is only ever one cell
+        // to which this applies, so don't try to calculate this for every cell.
+        if(currentSelected != null
+                && showVisibilityCheckbox.isSelected()
+                && !Double.isNaN(latestCanvasX) && !Double.isNaN(latestCanvasY))
+        {
+            Maybe<Hexagon<SatelliteDataImpl>> hexagonMaybe = hexagonalGrid.getByPixelCoordinate(latestCanvasX, latestCanvasY);
+            if(hexagonMaybe.isPresent())
+            {
+                Hexagon<SatelliteDataImpl> hexagon = hexagonMaybe.get();
+                if(hexagonalGridCalculator.isVisible(currentSelected, hexagon))
+                {
+                    outlineHexagon(gridCanvas, hexagon, COLOR_VISIBLE);
+                }
+                else
+                {
+                    outlineHexagon(gridCanvas, hexagon, COLOR_NOT_VISIBLE);
+                }
+            }
+        } // End visibility marker.
+
+        // We also need to mark the path from the last selected cell to the current mouse position.
+        // Instead of another outline, let's use a circle in the middle of the hexes. That allows us
+        // to show more information on the screen at once, but without significant visual clutter.
+        if(currentSelected != null
+                && showPathingCheckbox.isSelected()
+                && !Double.isNaN(latestCanvasX) && !Double.isNaN(latestCanvasY))
+        {
+            Maybe<Hexagon<SatelliteDataImpl>> hexagonMaybe = hexagonalGrid.getByPixelCoordinate(latestCanvasX, latestCanvasY);
+            if(hexagonMaybe.isPresent())
+            {
+                Hexagon<SatelliteDataImpl> mouseHexagon = hexagonMaybe.get();
+                List<Hexagon<SatelliteDataImpl>> pathHexagons = hexagonalGridCalculator.drawLine(currentSelected, mouseHexagon);
+                for (Hexagon<SatelliteDataImpl> pathHexagon : pathHexagons)
+                {
+                    drawCenterCircle(gridCanvas, pathHexagon, COLOR_PATH);
+                }
+            }
+        } // End path markers.
+
+        // Draw coordinate overlays last so that they are always visible,
+        // regardless of any other markers.
+        if(showCoordinatesCheckbox.isSelected())
+        {
+            for (Hexagon<SatelliteDataImpl> hexagon : hexagonalGrid.getHexagons())
+            {
+                drawCoordinates(gridCanvas, hexagon);
+            }
+        }
+    }
+
+    private void drawCoordinates(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon)
+    {
+        // Draw toward the left edge of each hex.
+        double left = hexagon.getCenterX() - (validateAndGetCellRadius() * 0.5);
+
+        // Don't overlap the text; stack the coords..
+        double xTop = hexagon.getCenterY() - (coordTextSize);
+        double yTop = hexagon.getCenterY() + (coordTextSize / 2.0);
+        double zTop = hexagon.getCenterY() + (coordTextSize * 2);
+
+        // These are the cubic grid coordinates.
+        int gridX = hexagon.getGridX();
+        int gridY = hexagon.getGridY();
+        int gridZ = -(gridX + gridY);
+
+        GraphicsContext context = gridCanvas.getGraphicsContext2D();
+        context.setFont(Font.font(coordTextSize));
+        context.setLineWidth(1);
+        context.setFill(Color.BLACK);
+        context.fillText("X: " + gridX, left, xTop);
+        context.fillText("Y: " + gridY, left, yTop);
+        context.fillText("Z: " + gridZ, left, zTop);
+    }
+
+    private void drawCenterCircle(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon, Color circleColor)
+    {
+        double circleRadius = validateAndGetCellRadius() / 3.0;
+        gridCanvas.getGraphicsContext2D().setFill(circleColor);
+        gridCanvas.getGraphicsContext2D().fillOval(
+                hexagon.getCenterX() - circleRadius,
+                hexagon.getCenterY() - circleRadius,
+                circleRadius * 2.0,
+                circleRadius * 2.0);
     }
 
     private void fillHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon, Color fillColor)
@@ -226,9 +333,11 @@ public class ExampleController
 
     private void outlineHexagon(Canvas gridCanvas, Hexagon<SatelliteDataImpl> hexagon, Color outlineColor)
     {
-        gridCanvas.getGraphicsContext2D().setStroke(outlineColor);
+        GraphicsContext context = gridCanvas.getGraphicsContext2D();
+        context.setLineWidth(3);
+        context.setStroke(outlineColor);
         HexPoints hexPoints = extractHexPoints(hexagon);
-        gridCanvas.getGraphicsContext2D().strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
+        context.strokePolygon(hexPoints.xPoints, hexPoints.yPoints, HexPoints.numPoints);
 
     }
 
@@ -375,8 +484,11 @@ public class ExampleController
 
     public void onCanvasMouseMove(MouseEvent mouseEvent)
     {
-        canvasXField.setText(mouseEvent.getX() + "");
-        canvasYField.setText(mouseEvent.getY() + "");
+        latestCanvasX = mouseEvent.getX();
+        latestCanvasY = mouseEvent.getY();
+        canvasXField.setText(latestCanvasX + "");
+        canvasYField.setText(latestCanvasY + "");
+        redraw();
     }
 
     public void triggerRedraw(MouseEvent mouseEvent)
@@ -384,7 +496,12 @@ public class ExampleController
         redraw();
     }
 
-    private class HexPoints
+    public void triggerGridReset(MouseEvent mouseEvent)
+    {
+        resetGrid(null);
+    }
+
+    private static class HexPoints
     {
         final double[] xPoints = new double[6];
         final double[] yPoints = new double[6];
